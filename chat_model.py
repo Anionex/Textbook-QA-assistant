@@ -26,8 +26,10 @@ class OpenAIChat(BaseModel):
 
     def load_model(self, **kwargs):
         self.client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_API_BASE"),
+            # api_key=os.getenv("OPENAI_API_KEY"),
+            # base_url=os.getenv("OPENAI_API_BASE"),
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
         
     def chat(self, prompt: str, history: List[dict], meta_instruction:str ='') -> Tuple[str, List[dict]]:
