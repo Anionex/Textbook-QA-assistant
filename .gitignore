@@ -1,3 +1,7 @@
+*.docx
+*.txt
+*.tmp
+*.pdf
 # Python
 __pycache__/
 *.py[cod]
@@ -79,3 +83,6 @@ Makefile
 ehthumbs.db
 Thumbs.db
 desktop.ini
+
+# Vector cache
+vector_cache/

@@ -1,11 +1,9 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
 #include <cmath>
 #include <iostream>
-namespace py = pybind11;
+#include <ctime>
 using namespace std;
 
-#define SEARCH_TIMES 4000
+clock_t start_time, end_time;
 
 // 用于排序的数据结构
 struct DistanceIndex {
@@ -88,43 +86,34 @@ int* brute_force_search_core(
     return result;
 }
 
-py::array_t<int> brute_force_search(
-    py::array_t<float> vectors,
-    py::array_t<float> query,
-    int top_k
-) {
-    if (top_k <= 0) {
-        throw std::runtime_error("invalid top_k value");
-    }
-    
-    auto vectors_buf = vectors.request();
-    auto query_buf = query.request();
-    
-    if (vectors_buf.ndim != 2) throw std::runtime_error("vectors must be 2-dimensional");
-    if (query_buf.ndim != 1) throw std::runtime_error("query must be 1-dimensional");
-    
-    // Get raw pointers from numpy arrays
-    float* vectors_ptr = static_cast<float*>(vectors_buf.ptr);
-    float* query_ptr = static_cast<float*>(query_buf.ptr);
-    
-    int n_vectors = static_cast<int>(vectors_buf.shape[0]);
-    int dim = static_cast<int>(vectors_buf.shape[1]);
-    
-    if (query_buf.shape[0] != static_cast<size_t>(dim)) 
-        throw std::runtime_error("query dimension must match vectors dimension");
+int main() {
+    freopen("input.txt", "r", stdin);
+    // freopen("output.txt", "w", stdout);
 
-    // int* result = brute_force_search_core(vectors_ptr, query_ptr, n_vectors, dim, top_k);
-    // 单纯暴力搜索
-    int* result = new int[top_k];
-    for(int i = 0; i < SEARCH_TIMES; i++) {
-        result = brute_force_search_core(vectors_ptr, query_ptr, n_vectors, dim, top_k);
+    int n, d, k, nq;
+    cin >> n >> d >> k;
+    float* vectors = new float[n * d];
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < d; j++) {
+            cin >> vectors[i * d + j];
+        }
     }
-    // Create numpy array from result
-    py::array_t<int> result_array(top_k);
-    auto result_buf = result_array.request();
-    int* result_ptr = static_cast<int*>(result_buf.ptr);
-    std::memcpy(result_ptr, result, top_k * sizeof(int));
-    
-    delete[] result;
-    return result_array;
+    start_time = clock();
+    cin >> nq;
+    float* query = new float[d];
+    for(int i = 0; i < nq; i++) {
+        // cout << "query " << i << ": ";
+        for(int j = 0; j < d; j++) {
+            cin >> query[j];
+        }
+        int* result = brute_force_search_core(vectors, query, n, d, k);
+        for(int j = 0; j < k; j++) {
+            // cout << result[j] << " ";
+        }
+        // cout << endl;
+    }
+    end_time = clock();
+    cout << "frequency: " << (double)nq / ((end_time - start_time) / CLOCKS_PER_SEC) << endl;
+    // cout << "Time taken: " << (end_time - start_time) / CLOCKS_PER_SEC << " seconds" << endl;
+    return 0;
 }

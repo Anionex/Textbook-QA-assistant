@@ -1,43 +1,57 @@
-import PyPDF2
-MAX_TEXT_LENGTH = 10000
+import pdfplumber
+import chardet
+
+# START_TEXT_LENGTH = 14002
+# MAX_TEXT_LENGTH = 200000
+START_TEXT_LENGTH = 0
+MAX_TEXT_LENGTH = 500000
 def extract_text(file_path: str) -> str:
-    """
-    从文件中提取文本。
-    支持从PDF文件中提取文本内容，并进行换行优化处理。
-    
-    Args:
-        file_path: PDF文件路径
-        
-    Returns:
-        提取的文本内容
-    """
     if file_path.endswith('.txt'):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return file.read()[:MAX_TEXT_LENGTH]
+        with open(file_path, 'rb') as rawfile:
+            raw_data = rawfile.read()
+            detected = chardet.detect(raw_data)
+            encoding = detected['encoding']
+            
+        with open(file_path, 'r', encoding=encoding) as file:
+            text = file.read()[START_TEXT_LENGTH:START_TEXT_LENGTH+MAX_TEXT_LENGTH]
+            print("text length: ", len(text))
+            print("detected encoding: ", encoding)
+            return text
+        
     else:
         try:
-            with open(file_path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
-            
-            # 提取所有页面的文本
+            text_count = 0
             text_parts = []
-            for page in pdf_reader.pages:
-                text = page.extract_text()
-                
-                # 处理假换行：
-                # 1. 分割成行
-                lines = text.split('\n')
-                # 2. 处理每一行
-                for i, line in enumerate(lines):
-                    # 如果行不是空的，且不以句号、问号、感叹号结尾，且不是最后一行
-                    if (line.strip() and i < len(lines) - 1 and 
-                        not line.strip().endswith(('.', '?', '!', '。', '？', '！'))):
-                        # 添加空格而不是换行
-                        lines[i] = line.strip() + ' '
-                    else:
-                        lines[i] = line.strip()
-                
-                text_parts.append(''.join(lines))
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text_count >= START_TEXT_LENGTH + MAX_TEXT_LENGTH:
+                        break
+
+                    # 调整文本以从START_TEXT_LENGTH开始
+                    if text_count < START_TEXT_LENGTH:
+                        if text_count + len(text) < START_TEXT_LENGTH:
+                            text_count += len(text)
+                            continue
+                        else:
+                            text = text[START_TEXT_LENGTH - text_count:]
+                            text_count = START_TEXT_LENGTH
+
+                    # 处理假换行：
+                    lines = text.split('\n')
+                    for i, line in enumerate(lines):
+                        if (line.strip() and i < len(lines) - 1 and 
+                            not line.strip().endswith(('.', '?', '!', '。', '？', '！'))):
+                            lines[i] = line.strip() + ' '
+                        else:
+                            lines[i] = line.strip()
+                    
+                    text_parts.append(''.join(lines))
+                    text_count += len(text)
+
+                    # 如果已经达到所需长度，停止
+                    if text_count >= START_TEXT_LENGTH + MAX_TEXT_LENGTH:
+                        break
             
             return ('\n'.join(text_parts)).strip()[:MAX_TEXT_LENGTH]
             
@@ -46,5 +60,5 @@ def extract_text(file_path: str) -> str:
             return ""
     
 if __name__ == "__main__":
-    text = extract_text(r"docs/2405.16506v2-GRAG.pdf")
-    print(text)
+    text = extract_text(r"docs/曼昆 经济学原理.txt")
+    # print(text)

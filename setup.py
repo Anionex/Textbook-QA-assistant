@@ -19,13 +19,15 @@ class CMakeBuild(build_ext):
         for ext in self.extensions:
             self.build_extension(ext)
             
-        # 把当前目录下的Release目录下的文件移动到当前目录下
+        # 把当前目录下的Release目录下的文件强制移动到当前目录下
         release_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Release')
         if os.path.exists(release_dir):
             for file in os.listdir(release_dir):
                 if file.endswith('.pyd'):
                     src = os.path.join(release_dir, file)
                     dst = os.path.join(os.path.dirname(os.path.abspath(__file__)), file)
+                    if os.path.exists(dst):
+                        os.remove(dst)
                     os.rename(src, dst)
 
     def build_extension(self, ext):
